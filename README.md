@@ -1,23 +1,55 @@
+<div align="center">
+
 # RecoFed
 
-This project trains LoRA adapters for large language models in a federated setting. It supports local client training, global adapter aggregation, and optional layer-importance-based LoRA rank allocation.
+**Federated LoRA fine-tuning with RecoFed aggregation and layer-aware rank allocation**
 
-## Setup
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%20Ready-ee4c2c)
+![LoRA](https://img.shields.io/badge/LoRA-PEFT-green)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
+
+</div>
+
+## Overview
+
+RecoFed trains LoRA adapters for large language models in a federated setting. Each client trains locally, then the server aggregates client updates with the RecoFed aggregation method. The project also supports optional layer-importance-based LoRA rank allocation.
+
+## Highlights
+
+- 🔗 Federated LoRA training for instruction-tuned LLMs
+- 🧩 RecoFed aggregation for client adapter updates
+- 📊 Optional layer-importance-based heterogeneous LoRA ranks
+- 🧪 GLUE-MNLI calibration for layer-importance estimation
+- 🚀 Inference script for saved global adapters
+
+## Quick Start
 
 ```bash
 pip install -r requirements.txt
 cd code
 ```
 
-## Data
+## Data Layout
 
-Client data is stored under `code/data/`. For example, with `num_clients=8`:
+Client data lives under `code/data/`.
+
+```text
+data/
+├── dataset1/
+│   ├── 2/
+│   ├── 4/
+│   ├── 6/
+│   └── 8/
+└── dataset2/
+    ├── 2/
+    └── 8/
+```
+
+Example client file:
 
 ```text
 data/dataset1/8/local_training_0.json
-data/dataset1/8/local_training_1.json
-...
-data/dataset1/8/local_training_7.json
 ```
 
 Each sample should include:
@@ -31,6 +63,8 @@ Each sample should include:
 ```
 
 ## Training
+
+Run RecoFed training:
 
 ```bash
 python main.py \
@@ -48,7 +82,7 @@ python main.py \
   --aggregation_method "recofed"
 ```
 
-To enable layer-importance-based LoRA ranks:
+Enable layer-aware LoRA ranks:
 
 ```bash
 python main.py \
@@ -66,8 +100,6 @@ python main.py \
   --rank_alloc_max 16
 ```
 
-Layer importance is currently calculated with GLUE-MNLI calibration data.
-
 ## Inference
 
 ```bash
@@ -81,17 +113,26 @@ python GlobalModel_generated.py \
   --load_8bit True
 ```
 
-## Main Files
+## Project Structure
 
-- `code/main.py`: federated LoRA training.
-- `code/GlobalModel_generated.py`: inference.
-- `code/fed_utils/client.py`: local client training.
-- `code/fed_utils/model_aggregation.py`: aggregation.
-- `code/fed_utils/rank_allocation.py`: layer importance and rank allocation.
-- `code/data/data.py`: GLUE-MNLI calibration loader.
+```text
+code/
+├── main.py                         # Federated LoRA training
+├── GlobalModel_generated.py        # Inference
+├── data/
+│   └── data.py                     # GLUE-MNLI calibration loader
+├── fed_utils/
+│   ├── client.py                   # Local client training
+│   ├── model_aggregation.py        # RecoFed and FedAvg aggregation
+│   ├── rank_allocation.py          # Layer importance and rank allocation
+│   └── evaluation.py               # Evaluation
+├── templates/
+└── utils/
+```
 
 ## Notes
 
 - Check `CUDA_VISIBLE_DEVICES`, Hugging Face offline settings, and mirror settings before running.
 - Gated models such as LLaMA may require Hugging Face access.
 - Training outputs are saved under `output_dir/num_clients/`, such as `./lora-7b/8/`.
+- Model weights, logs, caches, and runtime outputs are excluded by `.gitignore`.
