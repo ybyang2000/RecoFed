@@ -13,12 +13,12 @@
 
 ## 📌 Overview
 
-RecoFed trains LoRA adapters for large language models in a federated setting. Each client trains locally, then the server aggregates client updates with the RecoFed aggregation method. The project also supports optional layer-importance-based LoRA rank allocation.
+RecoFed trains LoRA adapters for large language models in a federated setting. Each client trains locally, then the server aggregates client updates with the RecoFed aggregation method. The project also supports optional layer-importance-aware LoRA rank allocation.
 
 ## ✨ Highlights
 
 - 🔗 Federated LoRA training for instruction-tuned LLMs
-- 🧩 Consensus aggregation for client adapter updates
+- 🧩 Consensus aggregation for client LoRA adapter updates
 - 📊 Optional layer-importance-aware heterogeneous layer ranks
 - 🚀 Inference script for saved global adapters
 
