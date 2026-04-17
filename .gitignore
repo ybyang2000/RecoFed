@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Logs and debug outputs
+*.log
+problem_samples.json
+
+# Cache
+.cache/
+*/.cache/
+tmp_cache/
+
+# Runtime outputs
+output/
+code/output/
+runs/
+wandb/
+swanlab/
+swanlog/
+
+# Model weights and checkpoints
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+checkpoints/
+lora-*/
+code/lora-*/
+adapter_model.bin
+
+# Editor/system files
+.DS_Store
+.vscode/
+.idea/
