@@ -18,9 +18,8 @@ RecoFed trains LoRA adapters for large language models in a federated setting. E
 ## ✨ Highlights
 
 - 🔗 Federated LoRA training for instruction-tuned LLMs
-- 🧩 RecoFed aggregation for client adapter updates
-- 📊 Optional layer-importance-based heterogeneous LoRA ranks
-- 🧪 GLUE-MNLI calibration for layer-importance estimation
+- 🧩 Consensus aggregation for client adapter updates
+- 📊 Optional layer-importance-aware heterogeneous layer ranks
 - 🚀 Inference script for saved global adapters
 
 ## ⚙️ Quick Start
