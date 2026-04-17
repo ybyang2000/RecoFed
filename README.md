@@ -2,7 +2,7 @@
 
 # RecoFed
 
-**Federated LoRA fine-tuning with RecoFed aggregation and layer-aware rank allocation**
+**RecoFed: Resource-Efficient and Consensus-Driven Federated Fine-Tuning of Foundation Models**
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%20Ready-ee4c2c)
@@ -11,11 +11,11 @@
 
 </div>
 
-## Overview
+## 📌 Overview
 
 RecoFed trains LoRA adapters for large language models in a federated setting. Each client trains locally, then the server aggregates client updates with the RecoFed aggregation method. The project also supports optional layer-importance-based LoRA rank allocation.
 
-## Highlights
+## ✨ Highlights
 
 - 🔗 Federated LoRA training for instruction-tuned LLMs
 - 🧩 RecoFed aggregation for client adapter updates
@@ -23,46 +23,14 @@ RecoFed trains LoRA adapters for large language models in a federated setting. E
 - 🧪 GLUE-MNLI calibration for layer-importance estimation
 - 🚀 Inference script for saved global adapters
 
-## Quick Start
+## ⚙️ Quick Start
 
 ```bash
 pip install -r requirements.txt
 cd code
 ```
 
-## Data Layout
-
-Client data lives under `code/data/`.
-
-```text
-data/
-├── dataset1/
-│   ├── 2/
-│   ├── 4/
-│   ├── 6/
-│   └── 8/
-└── dataset2/
-    ├── 2/
-    └── 8/
-```
-
-Example client file:
-
-```text
-data/dataset1/8/local_training_0.json
-```
-
-Each sample should include:
-
-```json
-{
-  "instruction": "Question or task instruction",
-  "output": "Expected answer",
-  "category": "task category"
-}
-```
-
-## Training
+## 🚀 Training
 
 Run RecoFed training:
 
@@ -96,11 +64,11 @@ python main.py \
   --aggregation_method "recofed" \
   --use_importance_rank_allocation True \
   --target_avg_rank 8 \
-  --rank_alloc_min 6 \
+  --rank_alloc_min 2 \
   --rank_alloc_max 16
 ```
 
-## Inference
+## 🔍 Inference
 
 ```bash
 python GlobalModel_generated.py \
@@ -113,7 +81,7 @@ python GlobalModel_generated.py \
   --load_8bit True
 ```
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```text
 code/
@@ -129,10 +97,3 @@ code/
 ├── templates/
 └── utils/
 ```
-
-## Notes
-
-- Check `CUDA_VISIBLE_DEVICES`, Hugging Face offline settings, and mirror settings before running.
-- Gated models such as LLaMA may require Hugging Face access.
-- Training outputs are saved under `output_dir/num_clients/`, such as `./lora-7b/8/`.
-- Model weights, logs, caches, and runtime outputs are excluded by `.gitignore`.
