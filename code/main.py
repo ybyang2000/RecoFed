@@ -89,7 +89,7 @@ def fl_finetune(
             "q_proj",
             "v_proj",
         ],
-        aggregation_method: str = 'gcfed',
+        aggregation_method: str = 'recofed',
         cagrad_c: float = 0.4,  # CAGrad hyperparameter c.
         # llm hyperparams
         train_on_inputs: bool = False,
@@ -413,7 +413,7 @@ def fl_finetune(
             client_update_deltas[client_id] = update_delta
 
    
-        if aggregation_method == 'gcfed':
+        if aggregation_method.lower() == "recofed":
          
             model = RecoFed_aggregation_het_rank(
                 model=model,

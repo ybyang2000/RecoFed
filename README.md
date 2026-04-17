@@ -45,7 +45,7 @@ python main.py \
   --local_num_epochs 1 \
   --local_learning_rate 3e-4 \
   --prompt_template_name "alpaca_short" \
-  --aggregation_method "gcfed"
+  --aggregation_method "recofed"
 ```
 
 To enable layer-importance-based LoRA ranks:
@@ -59,7 +59,7 @@ python main.py \
   --num_communication_rounds 20 \
   --client_selection_frac 1 \
   --prompt_template_name "alpaca_short" \
-  --aggregation_method "gcfed" \
+  --aggregation_method "recofed" \
   --use_importance_rank_allocation True \
   --target_avg_rank 8 \
   --rank_alloc_min 6 \
