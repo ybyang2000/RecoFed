@@ -49,7 +49,7 @@ python main.py \
   --aggregation_method "recofed"
 ```
 
-Enable layer-aware LoRA ranks:
+Enable layer-importance-aware LoRA ranks:
 
 ```bash
 python main.py \
