@@ -90,7 +90,7 @@ def fl_finetune(
             "v_proj",
         ],
         aggregation_method: str = 'recofed',
-        cagrad_c: float = 0.4,  # CAGrad hyperparameter c.
+        RecoFed_c: float = 0.4,  # RecoFed hyperparameter c.
         # llm hyperparams
         train_on_inputs: bool = False,
         group_by_length: bool = False,
@@ -158,10 +158,10 @@ def fl_finetune(
 
     
     swanlab.init(
-        project="feddpa",
+        project="RecoFed",
         config={
             "learning_rate": local_learning_rate,
-            "architecture": "feddpa",
+            "architecture": "RecoFed",
             "dataset": "dataset1",
             "method": aggregation_method
         }
@@ -419,7 +419,7 @@ def fl_finetune(
                 model=model,
                 global_model_state_before_round=global_adapter_state_before_round,
                 client_update_deltas=client_update_deltas,
-                c=cagrad_c,
+                c=RecoFed_c,
                 global_learning_rate=1.0,
                 peft_config=final_lora_config
             )
