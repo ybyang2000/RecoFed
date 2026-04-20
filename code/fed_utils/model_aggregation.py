@@ -10,49 +10,9 @@ from peft.utils import set_peft_model_state_dict, get_peft_model_state_dict
 
 
 def FedAvg(model, selected_clients_set, output_dir, local_dataset_len_dict, epoch):
-    """
-    Memory-safe FedAvg v2.0.
-
-    1. Run standard weighted averaging for LoRA weights.
-    2. Compute cosine similarity between client updates and global consensus
-       in the reconstructed full-parameter space.
-    3. Stream the calculation to avoid full-vector caches.
-    """
-    logging.info("Starting FedAvg aggregation with high-dimensional similarity calculation...")
-    
-    # Choose the compute precision.
-    device = model.device
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
-
-    # Back up the previous round's global model state on CPU.
-    global_weights_old = {
-        k: v.to('cpu', dtype=compute_dtype).clone() 
-        for k, v in get_peft_model_state_dict(model, adapter_name="default").items()
-    }
-    
-    # Get LoRA A/B layer pairs.
-    def _get_lora_pairs(sd):
-        pairs = []
-        visited = set()
-        for k in sd.keys():
-            if "lora_A" in k:
-                prefix = k.replace(".lora_A.weight", "")
-                key_A = f"{prefix}.lora_A.weight"
-                key_B = f"{prefix}.lora_B.weight"
-                if key_B in sd and prefix not in visited:
-                    pairs.append((prefix, key_A, key_B))
-                    visited.add(prefix)
-        return pairs
-
-    lora_pairs = _get_lora_pairs(global_weights_old)
-    logging.info(f"Detected {len(lora_pairs)} LoRA layers for reconstruction.")
-
-    # Pass 1: standard aggregation.
-    weights_array = normalize(
-        torch.tensor([1.0 for _ in selected_clients_set], dtype=torch.float32),
-        p=1, dim=0
-    )
-    
+    num_clients = len(selected_clients_set)
+    weights_array = torch.tensor([1.0 / num_clients for _ in selected_clients_set], dtype=torch.float32)
     weighted_global_weights = None
     
     for k, client_id in enumerate(selected_clients_set):
@@ -67,83 +27,16 @@ def FedAvg(model, selected_clients_set, output_dir, local_dataset_len_dict, epoc
         else:
             for key in single_weights.keys():
                 weighted_global_weights[key] += single_weights[key].to(dtype=compute_dtype) * weights_array[k]
-    
-    # Apply the aggregated weights to the model.
+        
+        del single_weights
+
     set_peft_model_state_dict(model, weighted_global_weights, "default")
-    logging.info("FedAvg weight aggregation complete.")
-
-    # Pass 2: high-dimensional cosine similarity.
-    logging.info("Calculating high-dimensional cosine similarity with streaming...")
-    
-    # Precompute the global delta norm.
-    global_norm_sq = 0.0
-    
-    # Keep a CPU copy of the new global weights to avoid repeated disk reads.
-    global_weights_new = {k: v.cpu() for k, v in weighted_global_weights.items()}
     del weighted_global_weights
-
-    # Compute the global norm layer by layer.
-    for _, key_A, key_B in lora_pairs:
-        A_old = global_weights_old[key_A].to(device, dtype=compute_dtype)
-        B_old = global_weights_old[key_B].to(device, dtype=compute_dtype)
-        A_new = global_weights_new[key_A].to(device, dtype=compute_dtype)
-        B_new = global_weights_new[key_B].to(device, dtype=compute_dtype)
-        
-        W_delta_global = (B_new @ A_new) - (B_old @ A_old)
-        
-        global_norm_sq += torch.sum(W_delta_global.flatten() ** 2).item()
-        
-        del A_old, B_old, A_new, B_new, W_delta_global
-
-    sqrt_global_norm = np.sqrt(global_norm_sq + 1e-12)
-
-    # Compute cosine similarity for each client.
-    total_cosine_sim = 0.0
-    
-    for client_id in selected_clients_set:
-        single_output_dir = os.path.join(output_dir, str(epoch), f"local_output_{client_id}", "adapter_model.bin")
-        client_weights = torch.load(single_output_dir, map_location='cpu')
-        
-        client_dot_product = 0.0
-        client_norm_sq = 0.0
-        
-        for _, key_A, key_B in lora_pairs:
-            A_old = global_weights_old[key_A].to(device, dtype=compute_dtype)
-            B_old = global_weights_old[key_B].to(device, dtype=compute_dtype)
-            
-            A_glob = global_weights_new[key_A].to(device, dtype=compute_dtype)
-            B_glob = global_weights_new[key_B].to(device, dtype=compute_dtype)
-            
-            A_cli = client_weights[key_A].to(device, dtype=compute_dtype)
-            B_cli = client_weights[key_B].to(device, dtype=compute_dtype)
-            
-            W_delta_global = (B_glob @ A_glob) - (B_old @ A_old)
-            
-            W_delta_client = (B_cli @ A_cli) - (B_old @ A_old)
-            
-            flat_g = W_delta_global.flatten()
-            flat_c = W_delta_client.flatten()
-            
-            client_dot_product += torch.dot(flat_c, flat_g).item()
-            client_norm_sq += torch.sum(flat_c ** 2).item()
-            
-            del A_old, B_old, A_glob, B_glob, A_cli, B_cli
-            del W_delta_global, W_delta_client, flat_g, flat_c
-        
-        norm_client = np.sqrt(client_norm_sq + 1e-12)
-        cos_sim = client_dot_product / (norm_client * sqrt_global_norm)
-        total_cosine_sim += cos_sim
-        
-        del client_weights
-
-    avg_cos_sim = total_cosine_sim / len(selected_clients_set)
-    logging.info(f"FedAvg average consensus cosine similarity: {avg_cos_sim:.4f}")
-    
-    del global_weights_old, global_weights_new
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    return model, avg_cos_sim
+    return model
+
 
 
 def RecoFed_aggregation_het_rank(
@@ -154,17 +47,8 @@ def RecoFed_aggregation_het_rank(
     c: float = 0.2,
     global_learning_rate: float = 1.0
 ):
-    """
-    Memory-safe RecoFed aggregation.
-
-    1. Compute conflict-reducing aggregation weights with a Gram matrix.
-    2. Apply weighted aggregation and project back with SVD.
-    3. Stream Gram/SVD work layer by layer to keep memory usage low.
-    """
     total_start_time = time.perf_counter()
     auxiliary_time_cost = 0.0 
-
-    logging.info(f"Starting memory-safe RecoFed aggregation, c={c}, lr={global_learning_rate}...")
 
     if not client_update_deltas: 
         return model, 0.0
@@ -172,8 +56,7 @@ def RecoFed_aggregation_het_rank(
     client_ids = sorted(client_update_deltas.keys())
     num_tasks = len(client_ids)
     device = model.device
-    
-    # Use BF16 for matrix multiplication when available and FP32 for accumulation.
+
     compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
     
     # Preload the base parameters.
